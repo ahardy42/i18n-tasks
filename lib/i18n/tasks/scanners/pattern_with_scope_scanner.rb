@@ -24,7 +24,7 @@ module I18n::Tasks::Scanners
       key   = super
       scope = match[1]
       if scope
-        scope_parts = extract_literal_or_array_of_literals(scope)
+        scope_parts = extract_literal_or_array_of_literals(scope, path)
         return nil if scope_parts.nil? || scope_parts.empty?
 
         "#{scope_parts.join('.')}.#{key}"
@@ -50,9 +50,9 @@ module I18n::Tasks::Scanners
     # scope: literal or code expression or an array of these
     def scope_arg_re
       /(?:
-         :scope\s*=>\s* | (?# :scope => :home )
-         scope:\s*        (?#    scope: :home )
-        ) (\[[^\n)%#]*\]|[^\n)%#,]*)/x
+       :scope\s*=>\s* | (?# :scope => :home )
+       scope:\s*        (?#    scope: :home )
+      ) (\[[^\n)%#]*\]|[^\n)%#,]*|\w+\.\w+|#{expr_re})/x
     end
 
     # match a limited subset of code expressions (no parenthesis, commas, etc)
@@ -60,10 +60,22 @@ module I18n::Tasks::Scanners
       /[\w@.&|\s?!]+/
     end
 
-    # extract literal or array of literals
+    # scans for method definitions and returns the string returned by the method
+    def method_return_scope_literal(path, method_name)
+      text = read_file(path)
+      return nil unless text
+
+      # Regex pattern to match a method definition and capture the returned string
+      pattern = /def\s+#{Regexp.escape(method_name)}\s*\n\s*"([^"]+)"\s*\n\s*end/
+
+      match = text.match(pattern)
+      match ? match[1] : nil
+    end
+
+    # extract literal, array of literals, or method call without arguments
     # returns nil on any other input
     # rubocop:disable Metrics/MethodLength,Metrics/PerceivedComplexity
-    def extract_literal_or_array_of_literals(s)
+    def extract_literal_or_array_of_literals(s, path)
       literals = []
       braces_stack = []
       acc = []
@@ -72,6 +84,14 @@ module I18n::Tasks::Scanners
         if acc_str =~ literal_re
           literals << strip_literal(acc_str)
           acc = []
+        elsif acc_str =~ expr_re
+          lit = method_return_scope_literal(path, acc_str)
+          if lit
+            literals << lit
+            acc = []
+          else
+            return nil
+          end
         else
           return nil
         end

@@ -48,9 +48,6 @@ RSpec.describe 'PatternWithScopeScanner' do
     end
 
     it 'does not match anything else' do
-      stub_source scanner, '= t :key, scope: a'
-      expect(scanner.keys.map(&:key)).to eq([])
-
       stub_source scanner, '= t :key, scope: []'
       expect(scanner.keys.map(&:key)).to eq([])
 
@@ -84,6 +81,34 @@ RSpec.describe 'PatternWithScopeScanner' do
 
       stub_source scanner, '= t :key, scope: [:a, :a], name: t(:key, scope: :b)'
       expect(scanner.keys.map(&:key)).to eq(%w[a.a.key b.key])
+    end
+
+    it 'matches a scope that is a method call' do
+      stub_source scanner, <<-RUBY 
+      = t :key, scope: translation_scope
+        
+      def translation_scope
+        "bar"
+      end
+      RUBY
+
+      expect(scanner.keys.map(&:key)).to eq(['bar.key'])
+    end
+
+    it 'only matches the proper method call' do
+      stub_source scanner, <<-RUBY 
+      = t :key, scope: translation_scope
+        
+      def translation_scope
+        "bar"
+      end
+      
+      def scope
+        "baz"
+      end
+      RUBY
+
+      expect(scanner.keys.map(&:key)).to eq(['bar.key'])
     end
   end
 end
