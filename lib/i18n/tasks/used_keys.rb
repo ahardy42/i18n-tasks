@@ -8,6 +8,7 @@ require 'i18n/tasks/scanners/prism_scanner'
 require 'i18n/tasks/scanners/scanner_multiplexer'
 require 'i18n/tasks/scanners/files/caching_file_finder_provider'
 require 'i18n/tasks/scanners/files/caching_file_reader'
+require 'i18n/tasks/scanners/ast_matchers/custom_scope_value_matcher'
 
 # Require the pattern mapper even though it's not used by i18n-tasks directly.
 # This allows the user to use it in config/i18n-tasks.yml without having to require it.
@@ -25,7 +26,9 @@ module I18n::Tasks
         ['::I18n::Tasks::Scanners::ErbAstScanner', { only: %w[*.erb] }],
         ['::I18n::Tasks::Scanners::PatternWithScopeScanner', { exclude: %w[*.erb *.rb] }]
       ],
-      ast_matchers: [],
+      ast_matchers: [
+        ['::I18n::Tasks::Scanners::AstMatchers::CustomScopeValueMatcher']
+      ],
       strict: true
     }.freeze
 

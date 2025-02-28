@@ -22,6 +22,12 @@ search:
     - lib/
   exclude:
     - 'tmp/*'
+  scanners:
+    - ::I18n::Tasks::Scanners::RubyAstScanner
+    - ::I18n::Tasks::Scanners::ErbAstScanner
+    - ::I18n::Tasks::Scanners::PatternWithScopeScanner
+  ast_matchers:
+    - ::I18n::Tasks::Scanners::AstMatchers::CustomScopeValueMatcher
 
 ignore_missing:
   - i18n.plural.keys
